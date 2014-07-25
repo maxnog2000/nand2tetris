@@ -1,0 +1,19 @@
+/**
+ * Completed Sun Jul 28 18:10:57 CDT 2013
+ *
+ *  Exclusive-or gate: out = !(a == b).
+ */
+
+CHIP Xor {
+    IN a, b;
+    OUT out;
+
+    PARTS:
+    And(a=a, b=b, out=posin);
+    Not(in=a, out=nega);
+    Not(in=b, out=negb);
+    And(a=nega, b=negb, out=negin);
+    Or(a=posin, b=negin, out=orret);
+    Not(in=orret, out=out);
+}
+
