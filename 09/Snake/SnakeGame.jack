@@ -1,0 +1,71 @@
+class SnakeGame {
+
+    field Snake snake;
+    field int direction, foodX, foodY;
+
+    constructor SnakeGame new() {
+        let snake = Snake.new();
+        let direction = 0;
+	let foodX = 15;
+	let foodY = 15;
+        return this;
+    }
+
+    method void dispose() {
+        do snake.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void run() {
+        var char key;
+
+        while (true) {
+            while (key = 0) {
+                let key = Keyboard.keyPressed();
+                do moveSnake();
+            }
+
+            if (key = 131) {
+                let direction = 1;
+            }
+            if (key = 133) {
+                let direction = 2;
+            }
+            if (key = 130) {
+                let direction = 3;
+            }
+            if (key = 132) {
+                let direction = 4;
+            }
+
+            while (~(key = 0)) {
+                let key = Keyboard.keyPressed();
+                do moveSnake();
+            }
+        }
+
+        return;
+	}
+
+    method void moveSnake() {
+    	var int headY, headX;
+	let headX = snake.getHeadX();
+	let headY = snake.getHeadY();
+
+    	if (headX = foodX & headY = foodY) {
+		do snake.grow(direction);
+
+		let foodX = foodX + 5;
+		let foodY = foodY + 3;
+		do snake.draw(foodX, foodY, true);
+
+	}
+
+    	do snake.move(direction);
+	do snake.draw(foodX, foodY, true);
+
+        do Sys.wait(250);
+        return;
+    }
+}
