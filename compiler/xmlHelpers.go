@@ -1,10 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"html"
-	"io/ioutil"
-	"os"
+	"strings"
 
+	"./CompilationEngine"
 	"./JackTokenizer"
 )
 
@@ -25,12 +26,32 @@ func tokenTypeFormatter(token string) string {
 	}
 }
 
-func fileToXML(file, baseDirectory string) {
-	fileInfo, _ := os.Stat(baseDirectory + file + ".jack")
-	xmlOutput := "<tokens>\n"
-	for _, token := range JackTokenizer.Tokenize(baseDirectory + file + ".jack") {
-		xmlOutput += "<" + tokenTypeFormatter(token.TokenType) + "> " + html.EscapeString(token.Raw) + " </" + tokenTypeFormatter(token.TokenType) + ">\n"
+func nodeTraverse(node *CompilationEngine.Node, level int) {
+	padding := strings.Repeat(" ", level*2)
+	if node.Terminal == true {
+		fmt.Printf(padding+"<%s> %s </%s>\n", tokenTypeFormatter(node.Type), html.EscapeString(node.Value), tokenTypeFormatter(node.Type))
+	} else {
+		fmt.Printf(padding+"<%s>\n", node.Type)
+		for _, node := range node.Children {
+			nodeTraverse(node, level+1)
+		}
+		fmt.Printf(padding+"</%s>\n", node.Type)
 	}
-	xmlOutput += "</tokens>\n"
-	ioutil.WriteFile(baseDirectory+file+".xml", []byte(xmlOutput), fileInfo.Mode())
+}
+
+func fileToXML(file, baseDirectory string) {
+	nodeTraverse(CompilationEngine.CompilationEngine(JackTokenizer.Tokenize(baseDirectory+file+".jack")), 0)
+
+	//for _, node := range node.Children[3].Children {
+	//	fmt.Printf("node %+v\n", node)
+	//}
+
+	//fileInfo, _ := os.Stat(baseDirectory + file + ".jack")
+	//xmlOutput := "<tokens>\n"
+	//for _, token := range JackTokenizer.Tokenize(baseDirectory + file + ".jack") {
+	//	fmt.Printf("token %+v\n", token)
+	//	//xmlOutput += "<" + tokenTypeFormatter(token.TokenType) + "> " + html.EscapeString(token.Raw) + " </" + tokenTypeFormatter(token.TokenType) + ">\n"
+	//}
+	//xmlOutput += "</tokens>\n"
+	//ioutil.WriteFile(baseDirectory+file+".xml", []byte(xmlOutput), fileInfo.Mode())
 }

@@ -21,7 +21,7 @@ func main() {
 		return
 	} else if fileInfo.IsDir() {
 		directory, _ := os.Open(os.Args[1])
-		baseDirectory = fileInfo.Name() + "/"
+		baseDirectory = os.Args[1] + "/"
 		dirtyFilesToProcess, _ = directory.Readdirnames(0)
 	} else {
 		dirtyFilesToProcess = []string{fileInfo.Name()}
@@ -38,11 +38,14 @@ func main() {
 			filesToProcess = append(filesToProcess, strings.TrimSuffix(value, ".jack"))
 		}
 	}
-	if len(filesToProcess) != 0 {
-		fmt.Printf("%s", filesToProcess)
-		fmt.Printf("%s", baseDirectory)
-	} else {
+	if len(filesToProcess) == 0 {
 		fmt.Println("No files to process")
+		fmt.Println(baseDirectory) //NOOP
+		return
+	}
+
+	for _, file := range filesToProcess {
+		fileToXML(file, baseDirectory)
 	}
 
 }
