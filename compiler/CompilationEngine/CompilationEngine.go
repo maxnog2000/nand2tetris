@@ -14,6 +14,7 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 		Type: "class",
 	}
 	currentNode := topNode
+	wrapNextInExpression := false
 
 	inStatements := func() {
 		if currentNode.Type != "statements" {
@@ -28,8 +29,6 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 			switch currentNode.Type {
 			case "subroutineDec":
 				currentNode = childNode(currentNode, "subroutineBody")
-				insertToken(token, currentNode, true)
-				continue
 			case "class":
 				insertToken(token, currentNode, true)
 				currentNode = childNode(currentNode, "subroutineDec")
@@ -38,28 +37,56 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 		case "}":
 			if currentNode.Type == "subroutineDec" {
 				currentNode = currentNode.Parent
+			}
+
+			if currentNode.Parent != nil && currentNode.Parent.Type == "whileStatement" {
+				currentNode = currentNode.Parent
 
 			}
+
 			insertToken(token, currentNode, true)
 			currentNode = currentNode.Parent
 			continue
 		case "(":
-			nodeType := "parameterList"
-			if currentNode.Type == "doStatement" {
-				nodeType = "expressionList"
-			}
 			insertToken(token, currentNode, true)
-			currentNode = childNode(currentNode, nodeType)
+
+			if currentNode.Type != "whileStatement" {
+				nodeType := "expressionList"
+				if currentNode.Type == "subroutineDec" {
+					nodeType = "parameterList"
+				}
+				currentNode = childNode(currentNode, nodeType)
+			}
+			wrapNextInExpression = true
 			continue
 		case ")":
+			wrapNextInExpression = false
 			currentNode = currentNode.Parent
+
+			if currentNode.Type == "expression" {
+				currentNode = currentNode.Parent
+				if currentNode.Type == "expressionList" || currentNode.Type == "parameterList" {
+					currentNode = currentNode.Parent
+				}
+			}
+		case "[":
+			insertToken(token, currentNode, true)
+			wrapNextInExpression = true
+			continue
+		case "]":
+			wrapNextInExpression = false
+			currentNode = currentNode.Parent
+
+			if currentNode.Type == "expression" {
+				currentNode = currentNode.Parent
+			}
 		case ";":
 			switch currentNode.Type {
-			case "expression":
+			case "term":
+				currentNode = currentNode.Parent
 				currentNode = currentNode.Parent
 				insertToken(token, currentNode, true)
 				currentNode = currentNode.Parent
-
 			case "returnStatement":
 				insertToken(token, currentNode, true)
 				currentNode = currentNode.Parent
@@ -80,20 +107,27 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 		case "return":
 			inStatements()
 			currentNode = childNode(currentNode, "returnStatement")
+		case "while":
+			inStatements()
+			currentNode = childNode(currentNode, "whileStatement")
 		case "=":
 			insertToken(token, currentNode, true)
 			currentNode = childNode(currentNode, "expression")
 			continue
 		}
 
+		if wrapNextInExpression {
+			currentNode = childNode(currentNode, "expression")
+			wrapNextInExpression = false
+		}
+
 		if currentNode.Type == "expression" {
 			currentNode = childNode(currentNode, "term")
-			insertToken(token, currentNode, true)
+		} else if currentNode.Type == "term" && (token.Raw == "<" || token.Raw == "+" || token.Raw == "/") {
 			currentNode = currentNode.Parent
-		} else {
-			insertToken(token, currentNode, true)
-
 		}
+
+		insertToken(token, currentNode, true)
 
 	}
 
