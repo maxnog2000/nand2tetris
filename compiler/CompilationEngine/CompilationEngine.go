@@ -29,28 +29,36 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 			switch currentNode.Type {
 			case "subroutineDec":
 				currentNode = childNode(currentNode, "subroutineBody")
-			case "class":
-				insertToken(token, currentNode, true)
-				currentNode = childNode(currentNode, "subroutineDec")
-				continue
 			}
 		case "}":
-			if currentNode.Type == "subroutineDec" {
-				currentNode = currentNode.Parent
-			}
-
-			if currentNode.Parent != nil && currentNode.Parent.Type == "whileStatement" {
+			if currentNode.Type == "statements" && currentNode.Parent.Type == "subroutineBody" {
 				currentNode = currentNode.Parent
 
-			}
+				insertToken(token, currentNode, true)
+				currentNode = currentNode.Parent
+				currentNode = currentNode.Parent
 
-			insertToken(token, currentNode, true)
-			currentNode = currentNode.Parent
+			} else if currentNode.Type == "class" {
+				insertToken(token, currentNode, true)
+			} else {
+
+				if currentNode.Type == "subroutineDec" || (currentNode.Parent != nil && (currentNode.Parent.Type == "whileStatement" || currentNode.Parent.Type == "ifStatement")) {
+					currentNode = currentNode.Parent
+				}
+
+				insertToken(token, currentNode, true)
+				currentNode = currentNode.Parent
+
+				if currentNode.Type == "subroutineDec" {
+					currentNode = currentNode.Parent
+				}
+
+			}
 			continue
 		case "(":
 			insertToken(token, currentNode, true)
 
-			if currentNode.Type != "whileStatement" {
+			if currentNode.Type != "whileStatement" && currentNode.Type != "ifStatement" {
 				nodeType := "expressionList"
 				if currentNode.Type == "subroutineDec" {
 					nodeType = "parameterList"
@@ -91,11 +99,17 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 				insertToken(token, currentNode, true)
 				currentNode = currentNode.Parent
 				currentNode = currentNode.Parent
+				wrapNextInExpression = false
 			default:
 				insertToken(token, currentNode, true)
 				currentNode = currentNode.Parent
 			}
 			continue
+		case "method", "function", "constructor":
+			currentNode = childNode(currentNode, "subroutineDec")
+		case "if":
+			inStatements()
+			currentNode = childNode(currentNode, "ifStatement")
 		case "var":
 			currentNode = childNode(currentNode, "varDec")
 		case "let":
@@ -107,6 +121,9 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 		case "return":
 			inStatements()
 			currentNode = childNode(currentNode, "returnStatement")
+			wrapNextInExpression = true
+			insertToken(token, currentNode, true)
+			continue
 		case "while":
 			inStatements()
 			currentNode = childNode(currentNode, "whileStatement")
@@ -114,6 +131,8 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 			insertToken(token, currentNode, true)
 			currentNode = childNode(currentNode, "expression")
 			continue
+		case "field":
+			currentNode = childNode(currentNode, "classVarDec")
 		}
 
 		if wrapNextInExpression {
