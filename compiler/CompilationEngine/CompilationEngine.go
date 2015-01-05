@@ -91,9 +91,11 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 				currentNode = currentNode.Parent
 			}
 		case "=":
-			insertToken(token, currentNode, true)
-			currentNode = childNode(currentNode, "expression")
-			continue
+			if currentNode.Type != "term" {
+				insertToken(token, currentNode, true)
+				currentNode = childNode(currentNode, "expression")
+				continue
+			}
 		case ",":
 			if currentNode.Type == "term" {
 				currentNode = currentNode.Parent
