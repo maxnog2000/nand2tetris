@@ -14,7 +14,11 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 		Type: "class",
 	}
 	currentNode := topNode
+
 	wrapNextInExpression := false
+	wrapNextInTerm := false
+
+	unaryOpLevel := 0
 
 	inStatements := func() {
 		if currentNode.Type != "statements" {
@@ -23,8 +27,13 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 	}
 
 	for _, token := range tokens {
-		switch token.Raw {
 
+		if wrapNextInTerm {
+			currentNode = childNode(currentNode, "term")
+			wrapNextInTerm = false
+		}
+
+		switch token.Raw {
 		case "{":
 			switch currentNode.Type {
 			case "subroutineDec":
@@ -59,7 +68,7 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 			insertToken(token, currentNode, true)
 			wrapNextInExpression = true
 
-			if currentNode.Type != "whileStatement" && currentNode.Type != "ifStatement" {
+			if currentNode.Type != "whileStatement" && currentNode.Type != "ifStatement" && !(currentNode.Type == "term" && currentNode.Parent.Parent.Type != "letStatement") {
 				nodeType := "expressionList"
 				if currentNode.Type == "subroutineDec" {
 					nodeType = "parameterList"
@@ -72,6 +81,13 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 		case ")":
 			wrapNextInExpression = false
 			currentNode = currentNode.Parent
+
+			if unaryOpLevel != 0 && currentNode.Parent.Parent.Type != "term" {
+				for ; unaryOpLevel > 0; unaryOpLevel = unaryOpLevel - 1 {
+					currentNode = currentNode.Parent
+				}
+
+			}
 
 			if currentNode.Type == "expression" {
 				currentNode = currentNode.Parent
@@ -94,8 +110,13 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 			if currentNode.Type != "term" {
 				insertToken(token, currentNode, true)
 				currentNode = childNode(currentNode, "expression")
-				continue
+			} else {
+				currentNode = currentNode.Parent
+				insertToken(token, currentNode, true)
+				wrapNextInTerm = true
 			}
+			continue
+
 		case ",":
 			if currentNode.Type == "term" {
 				currentNode = currentNode.Parent
@@ -121,6 +142,9 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 				currentNode = currentNode.Parent
 			}
 			continue
+		case "-", "~":
+			wrapNextInTerm = true
+			unaryOpLevel = unaryOpLevel + 1
 		case "method", "function", "constructor":
 			currentNode = childNode(currentNode, "subroutineDec")
 		case "if":
