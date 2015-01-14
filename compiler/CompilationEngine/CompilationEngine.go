@@ -26,7 +26,7 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 		}
 	}
 
-	for _, token := range tokens {
+	for index, token := range tokens {
 
 		if wrapNextInTerm {
 			currentNode = childNode(currentNode, "term")
@@ -65,6 +65,11 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 			}
 			continue
 		case "(":
+			if wrapNextInExpression {
+				currentNode = childNode(currentNode, "expression")
+				currentNode = childNode(currentNode, "term")
+			}
+
 			insertToken(token, currentNode, true)
 			wrapNextInExpression = true
 
@@ -86,15 +91,15 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 				for ; unaryOpLevel > 0; unaryOpLevel = unaryOpLevel - 1 {
 					currentNode = currentNode.Parent
 				}
-
 			}
 
 			if currentNode.Type == "expression" {
 				currentNode = currentNode.Parent
-				if currentNode.Type == "expressionList" || currentNode.Type == "parameterList" {
-					currentNode = currentNode.Parent
-				}
 			}
+			if currentNode.Type == "expressionList" || currentNode.Type == "parameterList" {
+				currentNode = currentNode.Parent
+			}
+
 		case "[":
 			insertToken(token, currentNode, true)
 			wrapNextInExpression = true
@@ -116,7 +121,10 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 				wrapNextInTerm = true
 			}
 			continue
-
+		case "&":
+			if len(tokens) > index && tokens[index+1].Raw != "&" {
+				wrapNextInTerm = true
+			}
 		case ",":
 			if currentNode.Type == "term" {
 				currentNode = currentNode.Parent
@@ -126,6 +134,7 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 				continue
 			}
 		case ";":
+			unaryOpLevel = 0
 			switch currentNode.Type {
 			case "term":
 				currentNode = currentNode.Parent
@@ -178,7 +187,7 @@ func CompilationEngine(tokens []JackTokenizer.Token) *Node {
 
 		if currentNode.Type == "expression" {
 			currentNode = childNode(currentNode, "term")
-		} else if currentNode.Type == "term" && (token.Raw == "<" || token.Raw == "+" || token.Raw == "/") {
+		} else if currentNode.Type == "term" && (token.Raw == "<" || token.Raw == "+" || token.Raw == "/" || token.Raw == "&" || token.Raw == ">" || token.Raw == "-") {
 			currentNode = currentNode.Parent
 		}
 
