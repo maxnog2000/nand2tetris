@@ -26,4 +26,9 @@ CHIP Inc16 {
     HalfAdder(a=in[13], b=carry13, sum=out[13], carry=carry14);
     HalfAdder(a=in[14], b=carry14, sum=out[14], carry=carry15);
     HalfAdder(a=in[15], b=carry15, sum=out[15], carry=carry16);
+/**
+ *  Another Solution
+ *
+ *  Add16(a=in, b[0]=true, b[1..15]=false, out=out );
+ */    
 }
