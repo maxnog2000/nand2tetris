@@ -13,4 +13,21 @@ CHIP FullAdder {
     HalfAdder(a=a, b=b, sum=sumab, carry=carryab);
     HalfAdder(a=sumab, b=c, sum=sum, carry=carryc);
     Xor(a=carryab, b=carryc, out=carry);
+/**
+ * Another similar solution with Or gate
+ *  // carry = a´bc+ab´c+abc´+abc = bc(a´+a)+a(b´c+cb´) = bc+a(b xor c)
+ *  // sum = a´b´c+a´bc´+ab´c´+abc = a´(b xor c)+a(b xor c)´ = a xor b xor c
+ *
+ *  // s1 = b xor c
+ *  // c1 = b and c
+ *  HalfAdder(a=b, b=c, sum=s1, carry=c1 );
+ *
+ *  // sum = a xor s1 = a xor b xor c
+ *  // c2 = a and s1 = a(b xor c)
+ *  HalfAdder(a=a, b=s1, sum=sum, carry=c2 ); 
+ *
+ *  // carry = c1+c2 = bc+a(b xor c)
+ *  Or(a=c1, b=c2, out=carry);
+ * 
+ */    
 }
